@@ -1,4 +1,4 @@
-export type NodeKind = "service" | "db" | "queue" | "ui";
+export type NodeKind = "service" | "db" | "queue" | "cron" | "ui";
 
 export type NodeState = Record<string, unknown>;
 
@@ -100,6 +100,7 @@ export class Engine {
   private stats = new Map<string, NodeStats>();
   private logs: LogEntry[] = [];
   private handlers = new Map<string, Handler | Error>();
+  private startedCrons = new Set<string>();
   private rng = mulberry32(1);
   private nextMsgId = 1;
   private nextLogSeq = 1;
@@ -144,6 +145,10 @@ export class Engine {
     const id = this.readGraph().idByName.get(name);
     return id ? this.getState(id) : undefined;
   }
+  /** When the node's next self-scheduled wake-up (ctx.after) fires, if any. */
+  nextWakeAt(id: string): number | undefined {
+    return this.inFlight.find((m) => m.internal && m.toId === id)?.deliverAt;
+  }
   compileError(code: string): string | undefined {
     const h = this.compile(code);
     return h instanceof Error ? h.message : undefined;
@@ -164,6 +169,7 @@ export class Engine {
     this.states.clear();
     this.stats.clear();
     this.logs = [];
+    this.startedCrons.clear();
     this.rng = mulberry32(1);
     this.nextMsgId = 1;
     this.notify(true);
@@ -175,12 +181,30 @@ export class Engine {
   }
 
   step() {
+    this.startCrons();
     const next = this.inFlight[0];
     if (!next) return;
     this.runUntil(next.deliverAt);
   }
 
+  /** Crons have no inbound trigger, so the engine kicks each one off with a "start" message. */
+  private startCrons() {
+    for (const node of this.readGraph().nodes.values()) {
+      if (node.kind !== "cron" || this.startedCrons.has(node.id)) continue;
+      this.startedCrons.add(node.id);
+      this.enqueue({
+        fromId: node.id,
+        toId: node.id,
+        payload: "start",
+        sentAt: this.now,
+        deliverAt: this.now,
+        internal: true,
+      });
+    }
+  }
+
   private runUntil(t: number) {
+    this.startCrons();
     let delivered = false;
     while (this.inFlight[0] && this.inFlight[0].deliverAt <= t) {
       const msg = this.inFlight.shift()!;
@@ -264,8 +288,11 @@ export class Engine {
     const stats = this.stats.get(node.id) ?? { handled: 0, errors: 0, lastAt: -Infinity };
     this.stats.set(node.id, stats);
 
+    const isCronRun = msg.internal && node.kind === "cron" && msg.payload !== "start";
     if (!msg.internal) {
       this.pushLog("deliver", node.name, `${fromName} → ${node.name}: ${JSON.stringify(msg.payload)}`);
+    } else if (isCronRun) {
+      this.pushLog("deliver", node.name, `⏱ ${node.name} fired`);
     }
 
     const handler = this.compile(node.code);
@@ -309,7 +336,7 @@ export class Engine {
 
     try {
       handler({ id: msg.id, from: fromName, fromId: msg.fromId, payload: msg.payload }, ctx);
-      if (!msg.internal) {
+      if (!msg.internal || isCronRun) {
         stats.handled++;
         stats.lastAt = this.now;
       }

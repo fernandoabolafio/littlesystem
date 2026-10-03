@@ -1,6 +1,6 @@
 import { BaseBoxShapeUtil, HTMLContainer, T } from "tldraw";
 import { DEFAULT_CODE, DEFAULT_SIZE, DEFAULT_VIEW } from "../sim/defaults";
-import { engine, useRecentlyActive, useSimState } from "../sim/runtime";
+import { engine, useRecentlyActive, useSimClock, useSimState } from "../sim/runtime";
 import { UiView } from "../ui/UiView";
 import { SYS_TYPE, type SysShape } from "./sysType";
 import type { NodeKind, NodeState } from "../sim/engine";
@@ -9,6 +9,7 @@ const KIND_ICON: Record<NodeKind, string> = {
   service: "⚙",
   db: "⛁",
   queue: "≡",
+  cron: "⏱",
   ui: "▢",
 };
 
@@ -17,7 +18,7 @@ export class SysShapeUtil extends BaseBoxShapeUtil<SysShape> {
   static override props = {
     w: T.number,
     h: T.number,
-    kind: T.literalEnum("service", "db", "queue", "ui"),
+    kind: T.literalEnum("service", "db", "queue", "cron", "ui"),
     name: T.string,
     code: T.string,
     view: T.string,
@@ -77,6 +78,11 @@ function SysNode({ shape }: { shape: SysShape }) {
           <DbBody state={state} />
         ) : kind === "queue" ? (
           <QueueBody state={state} />
+        ) : kind === "cron" ? (
+          <>
+            <CronCountdown nodeId={shape.id} />
+            <StateBody state={state} />
+          </>
         ) : (
           <StateBody state={state} />
         )}
@@ -117,6 +123,13 @@ function QueueBody({ state }: { state: NodeState }) {
       {items.length > 12 && <span className="ls-empty">+{items.length - 12}</span>}
     </div>
   );
+}
+
+function CronCountdown({ nodeId }: { nodeId: string }) {
+  useSimClock();
+  const next = engine.nextWakeAt(nodeId);
+  if (next === undefined) return <div className="ls-cron ls-cron-stopped">stopped</div>;
+  return <div className="ls-cron">next run in {((next - engine.now) / 1000).toFixed(1)}s</div>;
 }
 
 function StateBody({ state }: { state: NodeState }) {

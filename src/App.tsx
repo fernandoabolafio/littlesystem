@@ -10,7 +10,7 @@ import { attachEditor, engine, getGraph, useSimClock, useSimState } from "./sim/
 
 const shapeUtils = [SysShapeUtil];
 const components: TLComponents = { OnTheCanvas: Tokens };
-const KINDS: NodeKind[] = ["service", "db", "queue", "ui"];
+const KINDS: NodeKind[] = ["service", "db", "queue", "cron", "ui"];
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
 
 export default function App() {

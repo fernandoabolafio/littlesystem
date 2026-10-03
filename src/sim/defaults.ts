@@ -4,6 +4,7 @@ export const DEFAULT_SIZE: Record<NodeKind, { w: number; h: number }> = {
   service: { w: 220, h: 130 },
   db: { w: 230, h: 190 },
   queue: { w: 220, h: 110 },
+  cron: { w: 220, h: 110 },
   ui: { w: 300, h: 380 },
 };
 
@@ -43,6 +44,15 @@ ctx.state.items.push(msg.payload);
 if (!ctx.state.draining) {
   ctx.state.draining = true;
   ctx.after(1500, "drain");
+}`,
+
+  cron: `// Wakes up every EVERY ms of simulated time (msg.from === ctx.self on each run).
+const EVERY = 5000;
+if (msg.from === ctx.self) {
+  ctx.after(EVERY, "tick");
+  if (msg.payload === "start") return;
+  ctx.state.runs = (ctx.state.runs ?? 0) + 1;
+  ctx.forward({ type: "tick", at: ctx.now });
 }`,
 
   ui: `// UI frames are nodes too: this handles messages sent back to the UI.

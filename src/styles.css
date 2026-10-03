@@ -194,8 +194,19 @@ body,
 .ls-kind-queue {
   background: #fff8f0;
 }
+.ls-kind-cron {
+  background: #f8f0fc;
+}
 .ls-kind-ui {
   background: white;
+}
+.ls-cron {
+  font: 600 11px/1.6 ui-monospace, monospace;
+  color: #9c36b5;
+  font-variant-numeric: tabular-nums;
+}
+.ls-cron-stopped {
+  color: #c92a2a;
 }
 .ls-kind-ui .ls-body {
   padding: 0;
