@@ -33,6 +33,18 @@ function readGraph(): Graph {
 
 export const engine = new Engine(readGraph);
 
+let lastFrame = performance.now();
+function frame(t: number) {
+  engine.tick(Math.min(100, t - lastFrame));
+  lastFrame = t;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// The engine is a module-level singleton driven by the loop above; hot-swapping this module
+// would leave UI and clock pointing at different engines, so force a full reload instead.
+import.meta.hot?.accept(() => window.location.reload());
+
 export function attachEditor(editor: Editor) {
   editorRef = editor;
   graphCache = null;

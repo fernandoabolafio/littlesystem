@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createShapeId, Tldraw, useValue, type Editor, type TLComponents } from "tldraw";
 import { loadDemo } from "./demo";
 import { Tokens } from "./overlay/Tokens";
@@ -15,18 +15,6 @@ const SPEEDS = [0.25, 0.5, 1, 2, 4];
 
 export default function App() {
   const [editor, setEditor] = useState<Editor | null>(null);
-
-  useEffect(() => {
-    let raf = 0;
-    let last = performance.now();
-    const loop = (t: number) => {
-      engine.tick(Math.min(100, t - last));
-      last = t;
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, []);
 
   return (
     <div className="ls-app">
