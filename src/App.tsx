@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createShapeId, Tldraw, useValue, type Editor, type TLComponents } from "tldraw";
 import { loadDemo } from "./demo";
 import { Tokens } from "./overlay/Tokens";
+import { FileSync, hasLocalServer } from "./project/fileSync";
+import { NODE_KINDS } from "./project/format";
 import { SysShapeUtil } from "./shapes/SysShapeUtil";
 import { SYS_TYPE, type SysShape } from "./shapes/sysType";
 import { DEFAULT_CODE, DEFAULT_SIZE, DEFAULT_VIEW } from "./sim/defaults";
@@ -10,40 +12,86 @@ import { attachEditor, engine, getGraph, useSimClock, useSimState } from "./sim/
 
 const shapeUtils = [SysShapeUtil];
 const components: TLComponents = { OnTheCanvas: Tokens };
-const KINDS: NodeKind[] = ["service", "db", "queue", "cron", "ui"];
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
 
+/**
+ * "files": served by the littlesystem CLI, each page is a project file on disk.
+ * "browser": a plain static deploy, everything lives in the browser's storage.
+ */
+type Mode = "files" | "browser";
+
 export default function App() {
+  const [mode, setMode] = useState<Mode | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [sync, setSync] = useState<FileSync | null>(null);
+
+  useEffect(() => {
+    void hasLocalServer().then((ok) => setMode(ok ? "files" : "browser"));
+  }, []);
+
+  if (!mode) return null;
 
   return (
     <div className="ls-app">
       <div className="ls-canvas">
         <Tldraw
-          persistenceKey="littlesystem"
+          persistenceKey={mode === "browser" ? "littlesystem" : undefined}
+          licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
           shapeUtils={shapeUtils}
           components={components}
           onMount={(ed) => {
             const detach = attachEditor(ed);
             setEditor(ed);
-            if (ed.getCurrentPageShapeIds().size === 0) loadDemo(ed);
-            return detach;
+            if (mode === "browser") {
+              if (ed.getCurrentPageShapeIds().size === 0) loadDemo(ed);
+              return detach;
+            }
+            const fileSync = new FileSync(ed);
+            setSync(fileSync);
+            return () => {
+              fileSync.dispose();
+              detach();
+            };
           }}
         />
       </div>
-      {editor && <SidePanel editor={editor} />}
+      {editor && <SidePanel editor={editor} sync={sync} />}
     </div>
   );
 }
 
-function SidePanel({ editor }: { editor: Editor }) {
+function SidePanel({ editor, sync }: { editor: Editor; sync: FileSync | null }) {
   return (
     <aside className="ls-panel">
+      {sync && <FileStatus sync={sync} />}
       <SimControls editor={editor} />
       <AddNodes editor={editor} />
       <Inspector editor={editor} />
       <EventLog />
     </aside>
+  );
+}
+
+function FileStatus({ sync }: { sync: FileSync }) {
+  useSyncExternalStore(sync.subscribe, sync.getVersion);
+  const status = sync.getStatus();
+  return (
+    <section className="ls-section ls-file">
+      {!status.connected ? (
+        <span className="ls-file-error">Reconnecting to littlesystem…</span>
+      ) : status.error ? (
+        <span className="ls-file-error">{status.error}</span>
+      ) : status.saving ? (
+        <span>Saving…</span>
+      ) : (
+        <span className="ls-file-ok">Saved</span>
+      )}
+      {status.path && (
+        <code title={status.path}>
+          <bdi>{status.path}</bdi>
+        </code>
+      )}
+    </section>
   );
 }
 
@@ -68,7 +116,13 @@ function SimControls({ editor }: { editor: Editor }) {
       <span className="ls-clock">
         t={(engine.now / 1000).toFixed(1)}s · {engine.getMessages().filter((m) => !m.internal).length} in flight
       </span>
-      <button className="ls-link" onClick={() => loadDemo(editor)}>
+      <button
+        className="ls-link"
+        onClick={() => {
+          const empty = getGraph().nodes.size === 0;
+          if (empty || confirm("Replace the system on this page with the coffee-shop demo?")) loadDemo(editor);
+        }}
+      >
         Load demo
       </button>
     </section>
@@ -94,7 +148,7 @@ function AddNodes({ editor }: { editor: Editor }) {
   };
   return (
     <section className="ls-section ls-add">
-      {KINDS.map((k) => (
+      {NODE_KINDS.map((k) => (
         <button key={k} onClick={() => add(k)}>
           + {k}
         </button>
@@ -138,7 +192,7 @@ function Inspector({ editor }: { editor: Editor }) {
             update({ kind, ...DEFAULT_SIZE[kind], code: DEFAULT_CODE[kind] });
           }}
         >
-          {KINDS.map((k) => (
+          {NODE_KINDS.map((k) => (
             <option key={k}>{k}</option>
           ))}
         </select>

@@ -64,6 +64,29 @@ body,
 .ls-hint {
   color: #888;
 }
+.ls-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+}
+.ls-file code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  font-size: 11px;
+  color: #888;
+}
+.ls-file-ok {
+  color: #2b8a3e;
+}
+.ls-file-error {
+  color: #c92a2a;
+}
 .ls-inspector {
   display: flex;
   flex-direction: column;

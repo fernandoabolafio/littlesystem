@@ -48,12 +48,22 @@ import.meta.hot?.accept(() => window.location.reload());
 export function attachEditor(editor: Editor) {
   editorRef = editor;
   graphCache = null;
-  return editor.store.listen(
+  const offDocument = editor.store.listen(
     () => {
       graphCache = null;
     },
     { scope: "document" },
   );
+  // Each page is its own system, so switching pages starts a fresh simulation.
+  const offPage = editor.sideEffects.registerAfterChangeHandler("instance", (prev, next) => {
+    if (prev.currentPageId === next.currentPageId) return;
+    graphCache = null;
+    engine.reset();
+  });
+  return () => {
+    offDocument();
+    offPage();
+  };
 }
 
 export function getGraph() {

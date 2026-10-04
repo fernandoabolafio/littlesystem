@@ -1,24 +1,38 @@
 {
   "name": "littlesystem",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Sketch software systems on a canvas, and watch them run. Drive it from the CLI or your coding agent.",
   "type": "module",
+  "bin": {
+    "littlesystem": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skill",
+    "licenses"
+  ],
+  "engines": {
+    "node": ">=20.10"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && pnpm build:cli",
+    "build:cli": "esbuild cli/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=dist/cli.js --loader:.md=text --banner:js=\"#!/usr/bin/env node\"",
     "typecheck": "tsc -b",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "sucrase": "^3.35.1",
-    "tldraw": "^5.5.2"
+    "cli": "node dist/cli.js",
+    "preview": "vite preview",
+    "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.25.12",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sucrase": "^3.35.1",
+    "tldraw": "^5.5.2",
     "typescript": "^5.9.0",
     "vite": "^8.3.2"
   }
