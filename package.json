@@ -2,6 +2,14 @@
   "name": "littlesystem",
   "version": "0.1.0",
   "description": "Sketch software systems on a canvas, and watch them run. Drive it from the CLI or your coding agent.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fernandoabolafio/littlesystem.git"
+  },
+  "homepage": "https://github.com/fernandoabolafio/littlesystem#readme",
+  "bugs": {
+    "url": "https://github.com/fernandoabolafio/littlesystem/issues"
+  },
   "type": "module",
   "bin": {
     "littlesystem": "dist/cli.js"
