@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Require NPM_TOKEN
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "Add the NPM_TOKEN repository secret, then re-run this workflow."
+            echo "Granular access token, all packages, read and write, bypass 2FA on."
+            exit 1
+          fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          last=$(git describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' --abbrev=0 2>/dev/null || true)
+          if [ -n "$last" ]; then
+            pnpm exec semantic-release
+            exit 0
+          fi
+
+          # semantic-release's first release is always 1.0.0. Publish the
+          # version already in package.json, tag it, and let later commits bump from there.
+          version=$(node -p "require('./package.json').version")
+          if npm view "littlesystem@${version}" version >/dev/null 2>&1; then
+            echo "${version} is already on npm"
+          else
+            npm publish
+          fi
+          git tag "v${version}"
+          git push origin "v${version}"
+          gh release create "v${version}" --title "v${version}" --notes "Initial release."

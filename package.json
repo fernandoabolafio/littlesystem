@@ -22,6 +22,10 @@
   "engines": {
     "node": ">=20.10"
   },
+  "packageManager": "pnpm@11.1.3",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && pnpm build:cli",
@@ -32,6 +36,11 @@
     "prepublishOnly": "pnpm build"
   },
   "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^11.0.1",
+    "@semantic-release/github": "^12.0.10",
+    "@semantic-release/npm": "^13.2.0",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -39,6 +48,7 @@
     "esbuild": "^0.25.12",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "semantic-release": "^25.0.9",
     "sucrase": "^3.35.1",
     "tldraw": "^5.5.2",
     "typescript": "^5.9.0",

@@ -55,6 +55,20 @@ pnpm cli help     # run the built CLI
 
 Without the local API (for example, a static deploy of `dist/app`), the app falls back to keeping everything in the browser.
 
+## Releases
+
+Pushes to `main` are published to npm by the Release workflow. Add a repository secret named `NPM_TOKEN`: a granular access token with read and write access to all packages, and bypass 2FA turned on.
+
+The first publish uses the version in `package.json`. After that, [Conventional Commits](https://www.conventionalcommits.org/) since the last tag choose the next version:
+
+| Commit | Version |
+| --- | --- |
+| `fix:` or `perf:` | patch, 0.1.1 |
+| `feat:` | minor, 0.2.0 |
+| `feat!:` or a `BREAKING CHANGE:` footer | major, 1.0.0 |
+
+Other commits (`docs:`, `chore:`, `ci:`, `refactor:`) do not publish.
+
 ## License
 
 littlesystem's own code: _license to be chosen_.
