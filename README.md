@@ -4,6 +4,10 @@ Sketch a software system on a canvas (services, databases, queues, crons and cli
 
 Drive it by hand in the browser, from the CLI, or let your coding agent build it for you.
 
+## Demo
+
+https://github.com/user-attachments/assets/4aaad510-d147-433b-8ad9-d757ebaff6de
+
 ## Get going
 
 ```bash
